@@ -1,36 +1,27 @@
-# Makefile for CUDA grayscale image conversion
-
-# Compiler
+# Variables
 NVCC = nvcc
+SRCDIR = src
+BINDIR = bin
+DATADIR = data
+LIBDIR = lib
+TARGET = $(BINDIR)/image_to_gray
+SRC = $(SRCDIR)/main.cu
+INCLUDES = -I$(LIBDIR)
 
-# Target executable
-TARGET = ImageToGray
+# Default target
+all: build
 
-# Source files
-SRCS = main.cu
-
-# Compiler flags
-CFLAGS = -O2
-
-# Include directories
-INCLUDES = -I/path/to/stb_image
-
-# Libraries
-LIBS = -L/path/to/libs -lstb_image
-
-# Default rule
-all: $(TARGET)
-
-# Rule to build the target executable
-$(TARGET): $(SRCS)
-    $(NVCC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(SRCS) $(LIBS)
-
-# Clean rule
+# Clean up the binary files
 clean:
-    rm -f $(TARGET)
+	rm -f $(TARGET)
 
-# Run rule
+# Compile and link the CUDA code
+$(TARGET): $(SRC)
+	$(NVCC) $(SRC) -o $(TARGET) $(INCLUDES)
+
+# Build target
+build: $(TARGET)
+
+# Run the executable to process the image
 run: $(TARGET)
-    ./$(TARGET) sample_data_color.jpg
-
-.PHONY: all clean run
+	$(TARGET)

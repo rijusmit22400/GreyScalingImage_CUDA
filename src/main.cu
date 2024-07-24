@@ -2,6 +2,7 @@
 #include "device_launch_parameters.h"
 
 #include <iostream>
+#include <string>
 
 #include "stb_image.h"
 #include "stb_image_write.h"
@@ -27,22 +28,22 @@ void ConvertImageToGrayCPU(char* imageRGBA, int width, int height){
 } 
 
 int main(){
-    //check argument
-    if(argc<2){
-        cout << "Usage: 02_ImagetoGray <filename>" << "\n";
+    // Hardcoded image filename
+    const char* filename = "sample_data_color.jpg";
+
+    // Open image
+    int width, height, componentCount;
+    unsigned char* imageData = stbi_load(filename, &width, &height, &componentCount, 0);
+    if(!imageData){
+        cout << "Failed to open \"" << filename << "\"\n";
         return -1;
     }
-    //open image
-    int width, height, componentCount;
-    unsigned char* imageData = stbi_load("sample_data_color.jpg", &width, &height, &componentCount, 0);
-    if(!imageData){
-        cout << "Failed to open \"" << arg[1] << "\"\n";
-    }
 
-    //validate image size
-    if(width%32 || height%32){
-        //image size must be multiple of 32
-        cout << "Image size must be multiple of 32\n";
+    // Validate image size
+    if(width % 32 != 0 || height % 32 != 0){
+        // Image size must be a multiple of 32
+        cout << "Image size must be a multiple of 32\n";
+        stbi_image_free(imageData);
         return -1;
     }
 
@@ -52,13 +53,27 @@ int main(){
     ConvertImageToGrayCPU((char*)imageData, width, height);
     cout << "DONE" << "\n"; 
 
-    //buidling output
-    string outputFilename = argv[1];
-    outputFilename.substr(0,fileNameOut.find_last_of('.')) + "_gray.jpg";
+    // Building output filename
+    string outputFilename = filename;
+    size_t dotPos = outputFilename.find_last_of('.');
+    if (dotPos != string::npos) {
+        outputFilename = outputFilename.substr(0, dotPos) + "_gray.jpg";
+    } else {
+        outputFilename += "_gray.jpg";
+    }
 
-    //Write image back
-    stbi_write_jpg(outputFilename.c_str(), width, height, 1, imageData, 4*width);
+    // Write image back
+    stbi_write_jpg(outputFilename.c_str(), width, height, 4, imageData, 100);
 
-    //close 
+    // Close 
     stbi_image_free(imageData);
+
+    cout << "Converted image saved as \"" << outputFilename << "\"\n";
+
+    // Random cout statements for debugging
+    cout << "Debug statement 1\n";
+    cout << "Debug statement 2\n";
+    cout << "Debug statement 3\n";
+
+    return 0;
 }
