@@ -1,27 +1,28 @@
-# Variables
-NVCC = nvcc
-SRCDIR = src
-BINDIR = bin
-DATADIR = data
-LIBDIR = lib
-TARGET = $(BINDIR)/image_to_gray
-SRC = $(SRCDIR)/main.cu
-INCLUDES = -I$(LIBDIR)
+CC = nvcc
+CFLAGS = -I./lib -I/usr/local/cuda/include
+LDFLAGS = -L/usr/local/cuda/lib64 -lcudart
 
-# Default target
-all: build
+SRC_DIR = src
+BIN_DIR = bin
+LIB_DIR = lib
 
-# Clean up the binary files
+SRCS = $(wildcard $(SRC_DIR)/*.cu)
+OBJS = $(SRCS:$(SRC_DIR)/%.cu=$(BIN_DIR)/%.o)
+EXEC = $(BIN_DIR)/grayscale_converter
+
+.PHONY: all clean
+
+all: $(EXEC)
+
+$(EXEC): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/%.o: $(SRC_DIR)/%.cu
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	rm -f $(TARGET)
+	rm -rf $(BIN_DIR)
 
-# Compile and link the CUDA code
-$(TARGET): $(SRC)
-	$(NVCC) $(SRC) -o $(TARGET) $(INCLUDES)
-
-# Build target
-build: $(TARGET)
-
-# Run the executable to process the image
-run: $(TARGET)
-	$(TARGET)
+run: $(EXEC)
+	./$(EXEC)

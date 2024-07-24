@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <cassert>
 
 #include "stb_image.h"
 #include "stb_image_write.h"
@@ -27,9 +28,24 @@ void ConvertImageToGrayCPU(char* imageRGBA, int width, int height){
     }
 } 
 
+__global__ void ConvertImageToGrayGPU(unsigned char* imageRGBA, int width, int height) {
+    uint32_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    uint32_t y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x < width && y < height) {
+        uint32_t idx = (y * width + x) * 4;
+        Pixel* pixel = (Pixel*)&imageRGBA[idx];
+        float pixelValue = pixel->r * 0.299f + pixel->g * 0.587f + pixel->b * 0.114f;
+        unsigned char gray = (unsigned char)pixelValue;
+        pixel->r = gray;
+        pixel->g = gray;
+        pixel->b = gray;
+        pixel->a = 255;
+    }
+}
+
 int main(){
     // Hardcoded image filename
-    const char* filename = "sample_data_color.jpg";
+    const char* filename = "data/sample_data_color.jpg";
 
     // Open image
     int width, height, componentCount;
@@ -47,19 +63,39 @@ int main(){
         return -1;
     }
 
+    /*
     cout << "Image size: " << width << "x" << height << "\n";
     cout << "Loading....." << "\n";
     cout << "Processing the image....." << "\n";
     ConvertImageToGrayCPU((char*)imageData, width, height);
     cout << "DONE" << "\n"; 
+    */
+    //copy data to device
+
+    cout << "Copying Data to GPU" << "\n";
+    unsigned char* ptrImageDataGpu = nullptr;
+    assert(cudaMalloc(&ptrImageDataGpu, width*height*4)== cudaSuccess);
+    assert(cudaMemcpy(ptrImageDataGpu, imageData, width * height * 4, cudaMemcpyHostToDevice)==cudaSuccess);
+    cout << "DONE" << "\n";
+
+
+    cout << "Running CUDA Kernel.." << "\n";
+    dim3 blockSize(32,32);
+    dim3 gridSize(width/blockSize.x, height/blockSize.y);
+    ConvertImageToGrayGPU<<<gridSize, blockSize>>>(ptrImageDataGpu, width, height);
+    cout << "DONE" << "\n";
+
+    //copying data from gpu to host
+    cout << "Copying Data from GPY.." << "\n";
+    assert(cudaMemcpy(imageData,ptrImageDataGpu, width * height * 4, cudaMemcpyDeviceToHost)==cudaSuccess);
 
     // Building output filename
     string outputFilename = filename;
     size_t dotPos = outputFilename.find_last_of('.');
     if (dotPos != string::npos) {
-        outputFilename = outputFilename.substr(0, dotPos) + "_gray.jpg";
+        outputFilename = "data/" + outputFilename.substr(outputFilename.find_last_of('/') + 1, dotPos) + "_gray.jpg";
     } else {
-        outputFilename += "_gray.jpg";
+        outputFilename = "data/" + outputFilename.substr(outputFilename.find_last_of('/') + 1) + "_gray.jpg";
     }
 
     // Write image back
@@ -69,11 +105,7 @@ int main(){
     stbi_image_free(imageData);
 
     cout << "Converted image saved as \"" << outputFilename << "\"\n";
-
-    // Random cout statements for debugging
-    cout << "Debug statement 1\n";
-    cout << "Debug statement 2\n";
-    cout << "Debug statement 3\n";
+    cout << "DONE" << "\n";
 
     return 0;
 }
