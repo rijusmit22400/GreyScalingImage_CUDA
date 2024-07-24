@@ -1,16 +1,36 @@
-# IDIR=./
-CXX = nvcc
+# Makefile for CUDA grayscale image conversion
 
-CXXFLAGS += $(shell pkg-config --cflags --libs opencv4)
-LDFLAGS += $(shell pkg-config --libs --static opencv)
+# Compiler
+NVCC = nvcc
 
-all: clean build
+# Target executable
+TARGET = ImageToGray
 
-build: 
-	$(CXX) convertRGBToGrey.cu --std c++17 `pkg-config opencv --cflags --libs` -o convertRGBToGrey.exe -Wno-deprecated-gpu-targets $(CXXFLAGS) -I/usr/local/cuda/include -lcuda
+# Source files
+SRCS = main.cu
 
-run:
-	./convertRGBToGrey.exe $(ARGS)
+# Compiler flags
+CFLAGS = -O2
 
+# Include directories
+INCLUDES = -I/path/to/stb_image
+
+# Libraries
+LIBS = -L/path/to/libs -lstb_image
+
+# Default rule
+all: $(TARGET)
+
+# Rule to build the target executable
+$(TARGET): $(SRCS)
+    $(NVCC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(SRCS) $(LIBS)
+
+# Clean rule
 clean:
-	rm -f convertRGBToGrey.exe
+    rm -f $(TARGET)
+
+# Run rule
+run: $(TARGET)
+    ./$(TARGET) sample_data_color.jpg
+
+.PHONY: all clean run
